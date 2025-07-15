@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  r-gemini-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:80"
+      - "5001:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=r-gemini-db;Database=R-Gemini-DB;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=true
+      - OpenAI__ApiKey=${OPENAI_API_KEY:-}
+    depends_on:
+      - r-gemini-db
+    volumes:
+      - ./src/R-Gemini.API/appsettings.Development.json:/app/appsettings.Development.json:ro
+    networks:
+      - r-gemini-network
+
+  r-gemini-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Passw0rd
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - r-gemini-db-data:/var/opt/mssql
+    networks:
+      - r-gemini-network
+
+  r-gemini-redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - r-gemini-redis-data:/data
+    networks:
+      - r-gemini-network
+
+volumes:
+  r-gemini-db-data:
+  r-gemini-redis-data:
+
+networks:
+  r-gemini-network:
+    driver: bridge
